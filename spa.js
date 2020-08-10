@@ -1,3 +1,7 @@
+'use strict';
+
+const axios = require('axios'), sched = require('node-schedule');
+
 function grabProcess() {
     var PROCESS = {
         start: {
@@ -59,6 +63,44 @@ function grabProcess() {
     return PROCESS;
 }
 
-setInterval(() => {
-    console.log(grabProcess())
-},1);
+function fire(parmProcess, parmKey, parmDate, a,b,c,d, parmCode) {
+    var fURL = "https://ryanwans.com/spa-analytics/openEnd/fireRequest?urlAuthentication="+a+b+c+d+"-authSpaNODE&dateCode="+parmDate;
+    var fPOST = {
+        data: parmProcess,
+        auth: parmKey,
+        secret: parmCode,
+        manager: "ryanwans-api-spalytics-live/endpoint"
+    };
+    var tempReturn;
+    axios.post(fURL, fPOST)
+    .then((res) => {
+        tempReturn = {code: res.statusCode, public: '28dn39dm39s2i'}
+    })
+    .catch((error) => {
+        tempReturn = {code: 400, err: error}
+    })
+    return tempReturn || "no return";
+}
+
+module.exports = {
+    grab: (apiKey, cronCode, postCallback) => {
+        var proc = grabProcess();
+        if(typeof cronCode === "undefined") {
+            var fireEvent = fire(proc, apiKey, Date.now(), 0, 1, 1, 0, "837hys92874");
+            if(postCallback){postCallback(fireEvent);}
+            if(fireEvent.code === 400) {throw new Error(fireEvent.err)}
+            else if(fireEvent === "no return") {return null;}
+            else {return fireEvent}
+        } else if (cronCode === "" || cronCode === null) {
+            throw new Error("Invalid CRON Code (Custom Error)");
+        } else {
+            var __CRON_SCHED__ = sched.scheduleJob(cronCode, function(fireDate) {
+                var fireEvent = fire(proc, apiKey, Date.now(), 0, 1, 1, 0, "837hys92874");
+                if(postCallback){postCallback(fireEvent);}
+                if(fireEvent.code === 400) {throw new Error(fireEvent.err)}
+                else if(fireEvent === "no return") {return null;}
+                else {return fireEvent}
+            });
+        }
+    }
+}

@@ -1,6 +1,6 @@
 {
   "name": "spalytics",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "SPA Analytics by RyanWans.com",
   "main": "spa.js",
   "scripts": {
@@ -15,5 +15,10 @@
   "bugs": {
     "url": "https://github.com/ryanwans/spa/issues"
   },
-  "homepage": "https://github.com/ryanwans/spa#readme"
+  "homepage": "https://github.com/ryanwans/spa#readme",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "node-schedule": "^1.3.2"
+  },
+  "devDependencies": {}
 }
