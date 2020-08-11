@@ -1,11 +1,12 @@
 'use strict';
 
-const axios = require('axios'), sched = require('node-schedule');
+const request = require('request'), sched = require('node-schedule');
 
 function grabProcess() {
+    console.log('| SPA | Starting Analytic Sequence...')
     var PROCESS = {
         start: {
-            usage: process.cpuUsage(),
+            usage: {system: process.cpuUsage().system, user:process.cpuUsage().user},
             time: Date.now()
         },
         end: {},
@@ -63,44 +64,35 @@ function grabProcess() {
     return PROCESS;
 }
 
-function fire(parmProcess, parmKey, parmDate, a,b,c,d, parmCode) {
+function fire(parmProcess, parmKey, parmDate, a,b,c,d, parmCode, customs) {
+    console.log('| SPA | Done. Firing results')
     var fURL = "https://ryanwans.com/spa-analytics/openEnd/fireRequest?urlAuthentication="+a+b+c+d+"-authSpaNODE&dateCode="+parmDate;
+    parmProcess.customs = customs;
     var fPOST = {
         data: parmProcess,
         auth: parmKey,
         secret: parmCode,
         manager: "ryanwans-api-spalytics-live/endpoint"
     };
-    var tempReturn;
-    axios.post(fURL, fPOST)
-    .then((res) => {
-        tempReturn = {code: res.statusCode, public: '28dn39dm39s2i'}
+    console.log(fPOST);
+    request.post(fURL, {json: fPOST}, 
+    (error, res, body) => {
+        if (error) {
+            throw new Error(error);
+        }
+        return {code: res.statusCode, requestCode: "SPA-DATA-xx"+Date.now()}
     })
-    .catch((error) => {
-        tempReturn = {code: 400, err: error}
-    })
-    return tempReturn || "no return";
+    
 }
 
 module.exports = {
-    grab: (apiKey, cronCode, postCallback) => {
-        var proc = grabProcess();
-        if(typeof cronCode === "undefined") {
-            var fireEvent = fire(proc, apiKey, Date.now(), 0, 1, 1, 0, "837hys92874");
-            if(postCallback){postCallback(fireEvent);}
-            if(fireEvent.code === 400) {throw new Error(fireEvent.err)}
-            else if(fireEvent === "no return") {return null;}
-            else {return fireEvent}
-        } else if (cronCode === "" || cronCode === null) {
-            throw new Error("Invalid CRON Code (Custom Error)");
-        } else {
-            var __CRON_SCHED__ = sched.scheduleJob(cronCode, function(fireDate) {
-                var fireEvent = fire(proc, apiKey, Date.now(), 0, 1, 1, 0, "837hys92874");
-                if(postCallback){postCallback(fireEvent);}
-                if(fireEvent.code === 400) {throw new Error(fireEvent.err)}
-                else if(fireEvent === "no return") {return null;}
-                else {return fireEvent}
+    grab: (apiKey, customVariables, postCallback) => {
+        var fireEvent = fire(grabProcess(), apiKey, Date.now(), 0, 1, 1, 0, "837hys92874", customVariables);
+            var __CRON_SCHED__ = sched.scheduleJob('0 0 * * *', function(fireDate) {
+                var fireEvent = fire(grabProcess(), apiKey, Date.now(), 0, 1, 1, 0, "837hys92874", customVariables);
+                try {postCallback(fireEvent)} catch(e) {}
+                return fireEvent
             });
-        }
+            console.log('| SPA | Cron Scheduled Successfuly')
     }
 }
