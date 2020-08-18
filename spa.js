@@ -44,7 +44,7 @@ function grabProcess() {
         for(let i=0; i<ends.est.length; i++) {f1 = f1 + ends.est[i]}
         for(let i=0; i<ends.cpu.length; i++) {f2 = f2 + ends.cpu[i]}
         f1 = f1/4, f2 = f2/4;
-        PROCESS.fours.estAvg = 1000-f1, PROCESS.fours.cpuAvg = 1000-f2;
+        PROCESS.fours.estAvg = 1000-f1, PROCESS.fours.cpuAvg =1000-f2;
     }
     function memGrab(obj) {
         var used = process.memoryUsage().heapUsed / (1024 * 1024);
@@ -64,7 +64,7 @@ function grabProcess() {
     return PROCESS;
 }
 
-function fire(parmProcess, parmKey, parmDate, a,b,c,d, parmCode, customs) {
+function fire(parmProcess, parmKey, parmDate, a,b,c,d, parmCode, customs, call) {
     console.log('| SPA | Done. Firing results')
     var fURL = "https://ryanwans.com/spa-analytics/openEnd/fireRequest?urlAuthentication="+a+b+c+d+"-authSpaNODE&dateCode="+parmDate;
     parmProcess.customs = customs;
@@ -74,25 +74,28 @@ function fire(parmProcess, parmKey, parmDate, a,b,c,d, parmCode, customs) {
         secret: parmCode,
         manager: "ryanwans-api-spalytics-live/endpoint"
     };
-    console.log(fPOST);
+    var ret = {};
     request.post(fURL, {json: fPOST}, 
     (error, res, body) => {
         if (error) {
             throw new Error(error);
         }
-        return {code: res.statusCode, requestCode: "SPA-DATA-xx"+Date.now()}
+        //console.log(res);
+        call({code: res.statusCode, requestCode: "SPA-DATA-xx"+Date.now(), actBody: body});
     })
-    
 }
 
 module.exports = {
-    grab: (apiKey, customVariables, postCallback) => {
-        var fireEvent = fire(grabProcess(), apiKey, Date.now(), 0, 1, 1, 0, "837hys92874", customVariables);
-            var __CRON_SCHED__ = sched.scheduleJob('0 0 * * *', function(fireDate) {
-                var fireEvent = fire(grabProcess(), apiKey, Date.now(), 0, 1, 1, 0, "837hys92874", customVariables);
-                try {postCallback(fireEvent)} catch(e) {}
+    grab: (apiKey, doNow, customVariables, postCallback) => {
+        if(doNow) {
+            var fireEvent = fire(grabProcess(), apiKey, Date.now(), 0, 1, 1, 0, "837hys92874", customVariables, postCallback);
+        }
+        var __CRON_SCHED__ = sched.scheduleJob('0 0,12 * * *', function(fireDate) {
+                var fireEvent = fire(grabProcess(), apiKey, Date.now(), 0, 1, 1, 0, "837hys92874", customVariables, postCallback);
+                postCallback(fireEvent)
                 return fireEvent
             });
             console.log('| SPA | Cron Scheduled Successfuly')
+        
     }
 }
